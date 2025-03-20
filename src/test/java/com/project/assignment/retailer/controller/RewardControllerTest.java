@@ -49,7 +49,7 @@ public class RewardControllerTest {
         when(rewardService.processTransaction(transaction)).thenReturn(new Reward("cust001","2025-03", 90));
         // Simulate no return value
 
-        mockMvc.perform(post("/retail/transactions")
+        mockMvc.perform(post("/retail/transaction")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"customerId\": \"cust001\", \"transactionAmount\": 120, \"transactionDate\": \"2025-03-15\"}"))
                 .andExpect(status().isCreated()); // Expect HTTP 201 Created
@@ -66,12 +66,67 @@ public class RewardControllerTest {
                 .when(rewardService).processTransaction(any(Transaction.class));
 
         // Perform the request with the date in ISO 8601 format
-        mockMvc.perform(post("/retail/transactions")
+        mockMvc.perform(post("/retail/transaction")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"customerId\": \"cust001\", \"transactionAmount\": 120, \"transactionDate\": \"2025-03-15\"}"))
                 .andExpect(status().isInternalServerError()) // Expect HTTP 500 Internal Server Error
                 .andExpect(jsonPath("$.error").value("Failed to process the transaction: Unable to process transaction")); // Validate error message
     }
+
+    /**
+     * Test for POST /retail/transactions with multiple customers and multiple transactions.
+     */
+    @Test
+    void testAddMultipleTransactions() throws Exception {
+        // Prepare mock data for multiple transactions
+        Transaction transaction1 = new Transaction("cust001", 120.0, new java.util.Date());
+        Transaction transaction2 = new Transaction("cust001", 80.0, new java.util.Date());
+        Transaction transaction3 = new Transaction("cust002", 150.0, new java.util.Date());
+        Transaction transaction4 = new Transaction("cust002", 60.0, new java.util.Date());
+
+        List<Transaction> transactions = Arrays.asList(transaction1, transaction2, transaction3, transaction4);
+
+        // Mock the RewardService method to return a list of rewards
+        when(rewardService.processTransaction(any(Transaction.class))).thenReturn(new Reward());
+
+        // Perform the POST request with a list of transactions
+        mockMvc.perform(post("/retail/transactions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("["
+                                + "{\"customerId\": \"cust001\", \"transactionAmount\": 120, \"transactionDate\": \"2025-03-15\"},"
+                                + "{\"customerId\": \"cust001\", \"transactionAmount\": 80, \"transactionDate\": \"2025-03-16\"},"
+                                + "{\"customerId\": \"cust002\", \"transactionAmount\": 150, \"transactionDate\": \"2025-03-17\"},"
+                                + "{\"customerId\": \"cust002\", \"transactionAmount\": 60, \"transactionDate\": \"2025-03-18\"}"
+                                + "]"))
+                .andExpect(status().isCreated());
+    }
+
+    /**
+     * Test for POST /retail/transactions with multiple transactions where one transaction causes an error.
+     */
+    @Test
+    void testAddMultipleTransactionsWithError() throws Exception {
+        // Prepare mock data for multiple transactions
+        Transaction transaction1 = new Transaction("cust001", 120.0, new java.util.Date());
+        Transaction transaction2 = new Transaction("cust002", 150.0, new java.util.Date());
+
+        List<Transaction> transactions = Arrays.asList(transaction1, transaction2);
+
+        // Mock the RewardService method to throw an exception on processing the second transaction
+        doThrow(new RuntimeException("Failed to process transaction"))
+                .when(rewardService).processTransaction(any(Transaction.class));
+
+        // Perform the POST request with the list of transactions
+        mockMvc.perform(post("/retail/transactions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("["
+                                + "{\"customerId\": \"cust001\", \"transactionAmount\": 120, \"transactionDate\": \"2025-03-15\"},"
+                                + "{\"customerId\": \"cust002\", \"transactionAmount\": 150, \"transactionDate\": \"2025-03-17\"}"
+                                + "]"))
+                .andExpect(status().isInternalServerError()) // Expect HTTP 500 Internal Server Error
+                .andExpect(jsonPath("$.error").value("Failed to process the transactions: Failed to process transaction")); // Validate error message
+    }
+
 
     // Test for GET /api/rewards/{customerId}
     @Test

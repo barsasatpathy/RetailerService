@@ -28,7 +28,7 @@ public class RewardController {
      * @return A ResponseEntity indicating the outcome of the transaction processing.
      *         If successful, it returns a 201 CREATED status, otherwise, returns a 500 INTERNAL_SERVER_ERROR status.
      */
-    @PostMapping("/transactions")
+    @PostMapping("/transaction")
     public ResponseEntity<?> addTransaction(@RequestBody Transaction transaction) {
         try {
             // Process the transaction and calculate reward points
@@ -38,6 +38,27 @@ public class RewardController {
             // If an error occurs during processing, return a 500 status with the error message
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("{\"error\": \"Failed to process the transaction: " + e.getMessage() + "\"}");
+        }
+    }
+
+    /**
+     * Endpoint to record multiple transactions and calculate reward points.
+     *
+     * @param transactions List of transactions to process and calculate rewards.
+     * @return ResponseEntity with HTTP status 201 Created if transactions are successfully processed,
+     *         or HTTP 500 Internal Server Error with a message in case of failure.
+     */
+
+    @PostMapping("/transactions")
+    public ResponseEntity<?> addTransactions(@RequestBody List<Transaction> transactions) {
+        try {
+            for (Transaction transaction : transactions) {
+                rewardService.processTransaction(transaction);
+            }
+            return ResponseEntity.status(HttpStatus.CREATED).build(); // Return 201 Created if successful
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("{\"error\": \"Failed to process the transactions: " + e.getMessage() + "\"}");
         }
     }
 
@@ -91,7 +112,7 @@ public class RewardController {
      * @return A ResponseEntity containing the list of rewards associated with the customer.
      *         If no rewards are found, it returns a 404 NOT_FOUND status with an error message.
      */
-    @GetMapping("/rewards/{customerId}")
+    @GetMapping("/rewards/total/{customerId}")
     public ResponseEntity<?> getTotalRewards(@PathVariable String customerId) {
         // Retrieve the list of rewards for the specified customer
         List<Reward> rewards = rewardService.getRewards(customerId);
