@@ -83,4 +83,26 @@ public class RewardController {
         // Return all rewards as a 200 OK response
         return ResponseEntity.ok(rewards);
     }
+
+    /**
+     * Endpoint to retrieve the reward points of a specific customer.
+     *
+     * @param customerId The unique identifier for the customer whose rewards are being retrieved.
+     * @return A ResponseEntity containing the list of rewards associated with the customer.
+     *         If no rewards are found, it returns a 404 NOT_FOUND status with an error message.
+     */
+    @GetMapping("/rewards/{customerId}")
+    public ResponseEntity<?> getTotalRewards(@PathVariable String customerId) {
+        // Retrieve the list of rewards for the specified customer
+        List<Reward> rewards = rewardService.getRewards(customerId);
+
+        if (rewards.isEmpty()) {
+            // Return a 404 status if no rewards are found
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("{\"error\": \"No rewards found for this customer\"}");
+        }
+
+        // Return the rewards as a 200 OK response
+        return ResponseEntity.ok(rewards);
+    }
 }

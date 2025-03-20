@@ -102,4 +102,14 @@ public class RewardService {
     public List<Reward> getAllRewards() {
         return rewardRepository.findAll();
     }
+
+    /**
+     * Retrieves the rewards for a specific customer by their customer ID.
+     *
+     * @param customerId The unique identifier of the customer whose rewards are being fetched.
+     * @return A list of Reward objects associated with the given customer ID.
+     */
+    public List<Reward> getTotalRewards(String customerId) {
+        return rewardRepository.findByCustomerId(customerId);
+    }
 }
