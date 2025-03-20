@@ -85,9 +85,9 @@ public class RewardController {
     }
 
     /**
-     * Endpoint to retrieve the reward points of a specific customer.
+     * Endpoint to retrieve the total reward points of a specific customer.
      *
-     * @param customerId The unique identifier for the customer whose rewards are being retrieved.
+     * @param customerId The unique identifier for the customer whose total rewards are being retrieved.
      * @return A ResponseEntity containing the list of rewards associated with the customer.
      *         If no rewards are found, it returns a 404 NOT_FOUND status with an error message.
      */

@@ -104,9 +104,9 @@ public class RewardService {
     }
 
     /**
-     * Retrieves the rewards for a specific customer by their customer ID.
+     * Retrieves the total rewards for a specific customer by their customer ID.
      *
-     * @param customerId The unique identifier of the customer whose rewards are being fetched.
+     * @param customerId The unique identifier of the customer whose total rewards are being fetched.
      * @return A list of Reward objects associated with the given customer ID.
      */
     public List<Reward> getTotalRewards(String customerId) {
