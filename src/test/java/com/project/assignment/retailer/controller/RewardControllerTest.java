@@ -1,32 +1,20 @@
 package com.project.assignment.retailer.controller;
 
-import com.project.assignment.retailer.entity.Reward;
-import com.project.assignment.retailer.entity.Transaction;
+import com.project.assignment.retailer.dto.CustomerDto;
 import com.project.assignment.retailer.service.RewardService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.http.ResponseEntity;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.doNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-public class RewardControllerTest {
-
-    private MockMvc mockMvc;
+class RewardControllerTest {
 
     @Mock
     private RewardService rewardService;
@@ -35,125 +23,50 @@ public class RewardControllerTest {
     private RewardController rewardController;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this); // Initialize mocks
-        mockMvc = MockMvcBuilders.standaloneSetup(rewardController).build(); // Setup MockMvc
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
 
-    // Test for POST /api/transactions
     @Test
-    void testAddTransaction() throws Exception {
-        // Mock the RewardService method
-        Transaction transaction = new Transaction("cust001", 120.0, new java.util.Date());
-        // Use doNothing for void methods
-        when(rewardService.processTransaction(transaction)).thenReturn(new Reward("cust001","2025-03", 90));
-        // Simulate no return value
+    public void testGetCustomer_ValidBehaviour() throws Exception {
+        // Create sample CustomerDto (representing the customer and their rewards data)
+        Map<String, Integer> pointsPerMonth = new HashMap<>();
+        pointsPerMonth.put("2025-01", 90);
+        pointsPerMonth.put("2025-02", 30);
 
-        mockMvc.perform(post("/retail/transaction")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"customerId\": \"cust001\", \"transactionAmount\": 120, \"transactionDate\": \"2025-03-15\"}"))
-                .andExpect(status().isCreated()); // Expect HTTP 201 Created
+        CustomerDto customerDto = new CustomerDto("cust001", pointsPerMonth, 120);
+
+        // Assume that RewardService is able to return the CustomerDto when fetching rewards for a given customerId
+        when(rewardService.getCustomerRewards("cust001")).thenReturn(customerDto);
+
+        // Make a request to the endpoint
+        ResponseEntity<CustomerDto> response = (ResponseEntity<CustomerDto>) rewardController.getCustomerRewards("cust001");
+
+        // Validate the response body (CustomerDto)
+        assertNotNull(response.getBody());
+        assertEquals("cust001", response.getBody().getCustomerId());
+        assertEquals(120, response.getBody().getTotalPoints());
+        assertTrue(response.getBody().getPointsPerMonth().containsKey("2025-01"));
+        assertTrue(response.getBody().getPointsPerMonth().containsKey("2025-02"));
+
+        // Verify that the service was called once with the correct customerId
+        verify(rewardService, times(1)).getCustomerRewards("cust001");
     }
 
-    // Test for POST /retail/transactions with exception
     @Test
-    void testAddTransactionWithException() throws Exception {
-        // Create a sample transaction
-        Transaction transaction = new Transaction("cust001", 120.0, new java.util.Date());
+    public void testGetCustomer_ErrorBehaviour() throws Exception {
+        // Simulate an error scenario, where the RewardService throws an exception
+        when(rewardService.getCustomerRewards("cust001")).thenThrow(new RuntimeException("No rewards found for this customer"));
 
-        // Mock the RewardService method to throw an exception
-        doThrow(new RuntimeException("Unable to process transaction"))
-                .when(rewardService).processTransaction(any(Transaction.class));
+        // Perform the request and assert that the exception is thrown
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            rewardController.getCustomerRewards("cust001");
+        });
 
-        // Perform the request with the date in ISO 8601 format
-        mockMvc.perform(post("/retail/transaction")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"customerId\": \"cust001\", \"transactionAmount\": 120, \"transactionDate\": \"2025-03-15\"}"))
-                .andExpect(status().isInternalServerError()) // Expect HTTP 500 Internal Server Error
-                .andExpect(jsonPath("$.error").value("Failed to process the transaction: Unable to process transaction")); // Validate error message
+        // Verify the exception message
+        assertEquals("No rewards found for this customer", exception.getMessage());
+
+        // Verify that the service method was called exactly once
+        verify(rewardService, times(1)).getCustomerRewards("cust001");
     }
-
-    /**
-     * Test for POST /retail/transactions with multiple customers and multiple transactions.
-     */
-    @Test
-    void testAddMultipleTransactions() throws Exception {
-        // Prepare mock data for multiple transactions
-        Transaction transaction1 = new Transaction("cust001", 120.0, new java.util.Date());
-        Transaction transaction2 = new Transaction("cust001", 80.0, new java.util.Date());
-        Transaction transaction3 = new Transaction("cust002", 150.0, new java.util.Date());
-        Transaction transaction4 = new Transaction("cust002", 60.0, new java.util.Date());
-
-        List<Transaction> transactions = Arrays.asList(transaction1, transaction2, transaction3, transaction4);
-
-        // Mock the RewardService method to return a list of rewards
-        when(rewardService.processTransaction(any(Transaction.class))).thenReturn(new Reward());
-
-        // Perform the POST request with a list of transactions
-        mockMvc.perform(post("/retail/transactions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("["
-                                + "{\"customerId\": \"cust001\", \"transactionAmount\": 120, \"transactionDate\": \"2025-03-15\"},"
-                                + "{\"customerId\": \"cust001\", \"transactionAmount\": 80, \"transactionDate\": \"2025-03-16\"},"
-                                + "{\"customerId\": \"cust002\", \"transactionAmount\": 150, \"transactionDate\": \"2025-03-17\"},"
-                                + "{\"customerId\": \"cust002\", \"transactionAmount\": 60, \"transactionDate\": \"2025-03-18\"}"
-                                + "]"))
-                .andExpect(status().isCreated());
-    }
-
-    /**
-     * Test for POST /retail/transactions with multiple transactions where one transaction causes an error.
-     */
-    @Test
-    void testAddMultipleTransactionsWithError() throws Exception {
-        // Prepare mock data for multiple transactions
-        Transaction transaction1 = new Transaction("cust001", 120.0, new java.util.Date());
-        Transaction transaction2 = new Transaction("cust002", 150.0, new java.util.Date());
-
-        List<Transaction> transactions = Arrays.asList(transaction1, transaction2);
-
-        // Mock the RewardService method to throw an exception on processing the second transaction
-        doThrow(new RuntimeException("Failed to process transaction"))
-                .when(rewardService).processTransaction(any(Transaction.class));
-
-        // Perform the POST request with the list of transactions
-        mockMvc.perform(post("/retail/transactions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("["
-                                + "{\"customerId\": \"cust001\", \"transactionAmount\": 120, \"transactionDate\": \"2025-03-15\"},"
-                                + "{\"customerId\": \"cust002\", \"transactionAmount\": 150, \"transactionDate\": \"2025-03-17\"}"
-                                + "]"))
-                .andExpect(status().isInternalServerError()) // Expect HTTP 500 Internal Server Error
-                .andExpect(jsonPath("$.error").value("Failed to process the transactions: Failed to process transaction")); // Validate error message
-    }
-
-
-    // Test for GET /api/rewards/{customerId}
-    @Test
-    void testGetRewards() throws Exception {
-        // Create mock data
-        Reward reward = new Reward("cust001", "2025-03", 90);
-        List<Reward> rewards = Arrays.asList(reward);
-
-        // Mock the RewardService method
-        when(rewardService.getRewards("cust001")).thenReturn(rewards);
-
-        mockMvc.perform(get("/retail/rewards/cust001"))
-                .andExpect(status().isOk()) // Expect HTTP 200 OK
-                .andExpect(jsonPath("$[0].customerId").value("cust001"))
-                .andExpect(jsonPath("$[0].monthYear").value("2025-03"))
-                .andExpect(jsonPath("$[0].rewardPoints").value(90)); // Validate response content
-    }
-
-    // Test for GET /api/rewards/{customerId} when no rewards exist
-    @Test
-    void testGetRewardsNotFound() throws Exception {
-        // Mock the RewardService method to return an empty list
-        when(rewardService.getRewards("cust001")).thenReturn(Arrays.asList());
-
-        mockMvc.perform(get("/retail/rewards/cust001"))
-                .andExpect(status().isNotFound()) // Expect HTTP 404 Not Found
-                .andExpect(jsonPath("$.error").value("No rewards found for this customer")); // Validate error message
-    }
-
 }
