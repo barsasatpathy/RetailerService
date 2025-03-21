@@ -28,7 +28,7 @@ class RewardControllerTest {
     }
 
     @Test
-    public void testGetCustomer_ValidBehaviour() throws Exception {
+    public void testGetCustomer_PositiveScenario() throws Exception {
         // Create sample CustomerDto (representing the customer and their rewards data)
         Map<String, Integer> pointsPerMonth = new HashMap<>();
         pointsPerMonth.put("2025-01", 90);
@@ -54,7 +54,7 @@ class RewardControllerTest {
     }
 
     @Test
-    public void testGetCustomer_ErrorBehaviour() throws Exception {
+    public void testGetCustomer_NegetiveScenario() throws Exception {
         // Simulate an error scenario, where the RewardService throws an exception
         when(rewardService.getCustomerRewards("cust001")).thenThrow(new RuntimeException("No rewards found for this customer"));
 

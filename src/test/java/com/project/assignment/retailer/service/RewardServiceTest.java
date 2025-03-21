@@ -29,7 +29,7 @@ class RewardServiceTest {
 
 
     @Test
-    public void testGetCustomerRewards_Valid() {
+    public void testGetCustomerRewards_PositiveScenarion() {
         // Prepare mock data for transactions
         String customerId = "cust001";
 
