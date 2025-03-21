@@ -8,7 +8,5 @@ import java.util.Date;
 import java.util.List;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    List<Transaction> findByCustomerId(String customerId);
-
     List<Transaction> findByCustomerIdAndTransactionDateBetween(String customerId, Date transactionDate, Date transactionDate2);
 }
